@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import roslib
-roslib.load_manifest('hello_ros')
+roslib.load_manifest('ex_mini')
  
 import sys
 import copy
