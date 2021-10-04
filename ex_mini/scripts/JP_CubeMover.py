@@ -25,7 +25,7 @@ def jointStatesCallback(msg):
   global currentJointState
   currentJointState = msg
   
-def Move_Arm(group, robot, display_trajectory_publisher, scene, pose_x, pose_y, pose_z, pose_roll, pose_pitch, pose_yaw):
+def Move_Arm(group, robot, display_trajectory_publisher, scene, pose_x, pose_y, pose_z, orientation_x, orientation_w):
   ## ======================
   ## Planning to 1 - pose goal
   ## ======================
@@ -38,10 +38,11 @@ def Move_Arm(group, robot, display_trajectory_publisher, scene, pose_x, pose_y, 
   pose_goal.position.x =pose_x
   pose_goal.position.y =pose_y
   pose_goal.position.z =pose_z
-  pose_goal.orientation.x = 0.0
-  pose_goal.orientation.y = -0.707106781187
-  pose_goal.orientation.z = 0.0
-  pose_goal.orientation.w = 0.707106781187
+  if(orientation_x != 0):
+    pose_goal.orientation.x = 0.0
+    pose_goal.orientation.y = -0.707106781187
+    pose_goal.orientation.z = 0.0
+    pose_goal.orientation.w = 0.707106781187
   
   print pose_goal
  
@@ -53,6 +54,8 @@ def Move_Arm(group, robot, display_trajectory_publisher, scene, pose_x, pose_y, 
                                       waypoints,   # waypoints to follow
                                       0.01,        # eef_step
                                       0.0)         # jump_threshold
+  print("Found path fraction: ", fraction)
+  #print("our plan is :" + plan1)
   #plan1 = group.retime_trajectory(robot.get_current_state(), plan1, 1.0)
   group.set_pose_target(pose_goal)
   #plan1 = group.plan()
@@ -69,7 +72,7 @@ def Move_Arm(group, robot, display_trajectory_publisher, scene, pose_x, pose_y, 
   display_trajectory.trajectory.append(plan1)
   display_trajectory_publisher.publish(display_trajectory);
   print "============ Waiting while plan 2 is visualized (again)..."
-  rospy.sleep(2.)
+  rospy.sleep(2.5)
   
   #If we're coming from another script we might want to remove the objects
   if "table" in scene.get_known_object_names():
@@ -82,7 +85,7 @@ def Move_Arm(group, robot, display_trajectory_publisher, scene, pose_x, pose_y, 
   group.execute(plan1,wait=True)
   print "============ Executed Plan..."
   #group.go(wait=True)
-  rospy.sleep(4.)
+  rospy.sleep(10.)
  
 def Gripper_Close(JointState, pub):
   currentJointState = rospy.wait_for_message("/joint_states",JointState)
@@ -145,9 +148,9 @@ def JP_Cube_Mover():
  
   ## Plannet Setup:
   #group.set_planning_time(0.0)
-  group.set_goal_orientation_tolerance(0.01)
-  group.set_goal_tolerance(0.01)
-  group.set_goal_joint_tolerance(0.1)
+  group.set_goal_orientation_tolerance(0.02)
+  group.set_goal_tolerance(0.02)
+  group.set_goal_joint_tolerance(0.03)
   group.set_num_planning_attempts(100) #Not supported anymore
   group.set_max_velocity_scaling_factor(1.0)
   group.set_max_acceleration_scaling_factor(1.0)
@@ -192,14 +195,15 @@ def moveCubes(posArray):
   global robot; global scene; global group
   for pose in posArray.poses:
     try:
-      Move_Arm(group, robot, display_trajectory_publisher, scene, pose.position.x, pose.position.y, pose.position.z+0.2, 0, -1.57, 0)        #Move above box
+      Move_Arm(group, robot, display_trajectory_publisher, scene, pose.position.x, pose.position.y, pose.position.z+0.2, 1,0)        #Move above box
     except Exception as e:
       print("Caught error", e)
-      continue
-    Move_Arm(group, robot, display_trajectory_publisher, scene, pose.position.x, pose.position.y, pose.position.z, 0, -1.57, 0)               #Move down to box
+      #continue
+    Move_Arm(group, robot, display_trajectory_publisher, scene, pose.position.x, pose.position.y, pose.position.z, 1,0)               #Move down to box
     Gripper_Close(JointState, pub)                                                                                                 #Grap box
-    Move_Arm(group, robot, display_trajectory_publisher, scene, pose.position.x, pose.position.y, pose.position.z+0.2, 0, -1.57, 0) 
-    Move_Arm(group, robot, display_trajectory_publisher, scene, bucket_x, bucket_y, bucket_z + 0.2, 0, -1.57, 0)  #Move above bucket_x
+    Move_Arm(group, robot, display_trajectory_publisher, scene, pose.position.x, pose.position.y, pose.position.z+0.4, 0, -1.57) 
+    print("Moving to bucket positioned at x:", bucket_x, ", y: ", bucket_y, ", z:", bucket_z)
+    Move_Arm(group, robot, display_trajectory_publisher, scene, bucket_x, bucket_y, bucket_z + 0.4, 1, 0)  #Move above bucket_x
     Gripper_Open(JointState, pub) 
   #    Busy = False
 
