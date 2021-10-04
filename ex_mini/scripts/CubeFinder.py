@@ -33,9 +33,12 @@ Bucket = Pose()
 
 r.sleep() #wait for msg from gazebo
 indx = find_substring(gazebo_obj.name,'cube')
-
+print("==========Running==========")
 while not rospy.is_shutdown():
-    if gazebo_obj is not 0: #check if variable is empty:
+    if len(indx) == 0:
+        print("==========No Cubes Found==========")
+        indx = find_substring(gazebo_obj.name,'cube')
+    elif gazebo_obj is not 0: #check if variable is empty:
         cube.poses = gazebo_obj.pose[indx[0]:indx[-1]+1]
         Bucket = gazebo_obj.pose[-1]
     
