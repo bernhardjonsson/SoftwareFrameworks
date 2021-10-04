@@ -19,6 +19,7 @@ from std_msgs.msg import String
 
 currentJointState = JointState() 
 haveBucket = False
+Busy = False
 
 def jointStatesCallback(msg):
   global currentJointState
@@ -58,7 +59,7 @@ def Move_Arm(group, robot, display_trajectory_publisher, scene, pose_x, pose_y, 
   
   
   print "============ Waiting while RVIZ displays plan1..."
-  rospy.sleep(0.5)
+  rospy.sleep(2.5) #used to be 0.5
  
  
   ## You can ask RVIZ to visualize a plan (aka trajectory) for you.
@@ -77,8 +78,9 @@ def Move_Arm(group, robot, display_trajectory_publisher, scene, pose_x, pose_y, 
     scene.remove_world_object("table2")
   if "groundplane" in scene.get_known_object_names():
     scene.remove_world_object("groundplane")
-    
+  print "============ Waiting while Executing Plan..."
   group.execute(plan1,wait=True)
+  print "============ Executed Plan..."
   #group.go(wait=True)
   rospy.sleep(4.)
  
@@ -95,6 +97,7 @@ def Gripper_Close(JointState, pub):
     print 'Published!'
     rate.sleep()
   print 'Gripper Closed!'
+  currentJointState.velocity = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
   
 def Gripper_Open(JointState, pub):
   currentJointState = rospy.wait_for_message("/joint_states",JointState)
@@ -109,6 +112,7 @@ def Gripper_Open(JointState, pub):
     print 'Published!'
     rate.sleep()
   print 'Gripper Opened!'
+  currentJointState.velocity = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
  
 def JP_Cube_Mover():
   ## Initialize moveit_commander and rospy.
@@ -141,9 +145,9 @@ def JP_Cube_Mover():
  
   ## Plannet Setup:
   #group.set_planning_time(0.0)
-  group.set_goal_orientation_tolerance(0.1)
+  group.set_goal_orientation_tolerance(0.01)
   group.set_goal_tolerance(0.01)
-  group.set_goal_joint_tolerance(0.01)
+  group.set_goal_joint_tolerance(0.1)
   group.set_num_planning_attempts(100) #Not supported anymore
   group.set_max_velocity_scaling_factor(1.0)
   group.set_max_acceleration_scaling_factor(1.0)
@@ -173,8 +177,6 @@ def JP_Cube_Mover():
  
  
  
-  ## DONE - Shut down moveit_commander.
-  moveit_commander.roscpp_shutdown()
  
   ## END_TUTORIAL
   print "============ STOPPING"
@@ -183,13 +185,26 @@ def JP_Cube_Mover():
     R.sleep()
 
 def moveCubes(posArray):
+  global Busy
+ # if(not Busy):
+ #   Busy = True
   global bucket_x; global bucket_y; global bucket_z
+  global robot; global scene; global group
   for pose in posArray.poses:
-    Move_Arm(group, robot, display_trajectory_publisher, scene, pose.position.x, pose.position.y, pose.position.z+0.2, 0, -1.57, 0)        #Move above box
+    try:
+      Move_Arm(group, robot, display_trajectory_publisher, scene, pose.position.x, pose.position.y, pose.position.z+0.2, 0, -1.57, 0)        #Move above box
+    except Exception as e:
+      print("Caught error", e)
+      continue
     Move_Arm(group, robot, display_trajectory_publisher, scene, pose.position.x, pose.position.y, pose.position.z, 0, -1.57, 0)               #Move down to box
     Gripper_Close(JointState, pub)                                                                                                 #Grap box
-    Move_Arm(group, robot, display_trajectory_publisher, scene, bucket_x, bucket_y, bucket_z, 0, -1.57, 0)  #Move above bucket_x
+    Move_Arm(group, robot, display_trajectory_publisher, scene, pose.position.x, pose.position.y, pose.position.z+0.2, 0, -1.57, 0) 
+    Move_Arm(group, robot, display_trajectory_publisher, scene, bucket_x, bucket_y, bucket_z + 0.2, 0, -1.57, 0)  #Move above bucket_x
     Gripper_Open(JointState, pub) 
+  #    Busy = False
+
+    ## DONE - Shut down moveit_commander.
+  moveit_commander.roscpp_shutdown()
 def defineBucket(bucketPos):
   global bucket_x; global bucket_y; global bucket_z
   bucket_x = bucketPos.position.x
