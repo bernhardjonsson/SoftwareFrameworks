@@ -204,7 +204,7 @@ def lookForBucket():
 
 if __name__=='__main__':
   try:
-     defineBucket()
+     lookForBucket()
   except rospy.ROSInterruptException:
     pass
 
