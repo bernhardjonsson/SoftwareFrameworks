@@ -204,7 +204,7 @@ def lookForBucket():
 
 if __name__=='__main__':
   try:
-     JP_Cube_Mover()
+     defineBucket()
   except rospy.ROSInterruptException:
     pass
 
