@@ -2,6 +2,7 @@
 import roslib
 roslib.load_manifest('ex_mini')
  
+
 import sys
 import copy
 import rospy
@@ -33,7 +34,6 @@ def Move_Arm(group, robot, display_trajectory_publisher, scene, pose_x, pose_y, 
   print pose_goal
   waypoints = []
   waypoints.append(pose_goal)
-  #pose_goal.orientation = geometry_msgs.msg.Quaternion(*tf_conversions.transformations.quaternion_from_euler(pose_roll,  pose_pitch , pose_yaw)) #Hand orrientation
   pose_goal.position.x =pose_x
   pose_goal.position.y =pose_y
   pose_goal.position.z =pose_z
@@ -114,8 +114,8 @@ def JP_Cube_Mover():
   ## Initialize moveit_commander and rospy.
   print "============ Move Box setup"
   moveit_commander.roscpp_initialize(sys.argv)
-  rospy.init_node('Cube_Mover2',
-                  anonymous=True)
+  #rospy.init_node('Cube_Mover2',
+  #                anonymous=True)
   global robot; global scene; global group
   robot = moveit_commander.RobotCommander()
   scene = moveit_commander.PlanningSceneInterface()
@@ -150,6 +150,7 @@ def JP_Cube_Mover():
   
   
   ## Grapper Setup:
+  global pub
   pub = rospy.Publisher("/jaco/joint_control", JointState, queue_size=1)
 
   ##Subscriber to listen for cube positons
@@ -158,8 +159,7 @@ def JP_Cube_Mover():
   #TEST coordinates to be read in:
   init_pose = group.get_current_pose().pose
   print init_pose
-  Move_Arm(group, robot, display_trajectory_publisher, scene, init_pose.position.x, init_pose.position.y, init_pose.position.z, 0, -1.57, 0)  
-  global bucket_x; global bucket_y; global bucket_z
+ # Move_Arm(group, robot, display_trajectory_publisher, scene, init_pose.position.x, init_pose.position.y, init_pose.position.z+0.2, 0, -1.57, 0)  
   
   ## FICTIVE WHILE LOOP FOR EACH BOX:                                                                                                                                             #Move The Arm
   # Move_Arm(group, robot, display_trajectory_publisher, scene, box_x, box_y, box_z+0.2, 0, -1.57, 0)        #Move above box
@@ -183,6 +183,7 @@ def JP_Cube_Mover():
     R.sleep()
 
 def moveCubes(posArray):
+  global bucket_x; global bucket_y; global bucket_z
   for pose in posArray.poses:
     Move_Arm(group, robot, display_trajectory_publisher, scene, pose.position.x, pose.position.y, pose.position.z+0.2, 0, -1.57, 0)        #Move above box
     Move_Arm(group, robot, display_trajectory_publisher, scene, pose.position.x, pose.position.y, pose.position.z, 0, -1.57, 0)               #Move down to box
@@ -190,22 +191,29 @@ def moveCubes(posArray):
     Move_Arm(group, robot, display_trajectory_publisher, scene, bucket_x, bucket_y, bucket_z, 0, -1.57, 0)  #Move above bucket_x
     Gripper_Open(JointState, pub) 
 def defineBucket(bucketPos):
-  bucket_x = bucketPos.pose.position.x
-  bucket_y = bucketPos.pose.position.y
-  bucket_z = bucketPos.pose.position.z
-  #global haveBucket
+  global bucket_x; global bucket_y; global bucket_z
+  bucket_x = bucketPos.position.x
+  bucket_y = bucketPos.position.y
+  bucket_z = bucketPos.position.z
+  global haveBucket
   if(not haveBucket):
     JP_Cube_Mover()
     haveBucket = True
 
 
 def lookForBucket():
-  rospy.init_node('Poslistener') #, anonymous=True) #No need to be anonymous I guess
+  rospy.init_node('CubeMover', anonymous=True) #No need to be anonymous I guess
   rospy.Subscriber("/BucketPos", Pose, defineBucket)
+  R = rospy.Rate(2)
+  while not rospy.is_shutdown():
+    R.sleep()
+  
 
 
 
 if __name__=='__main__':
+  #global haveBucket
+  #haveBucket = False
   try:
      lookForBucket()
   except rospy.ROSInterruptException:
