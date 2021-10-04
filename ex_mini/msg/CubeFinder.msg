@@ -1,4 +1,3 @@
-string name
-float32 x
+string x
 float32 y
 float32 z
