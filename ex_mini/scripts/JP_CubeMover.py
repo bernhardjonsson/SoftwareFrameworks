@@ -17,6 +17,7 @@ import math
 from std_msgs.msg import String
 
 currentJointState = JointState() 
+haveBucket = False
 
 def jointStatesCallback(msg):
   global currentJointState
@@ -192,7 +193,10 @@ def defineBucket(bucketPos):
   bucket_x = bucketPos.pose.position.x
   bucket_y = bucketPos.pose.position.y
   bucket_z = bucketPos.pose.position.z
-  JP_Cube_Mover()
+  #global haveBucket
+  if(not haveBucket):
+    JP_Cube_Mover()
+    haveBucket = True
 
 
 def lookForBucket():
