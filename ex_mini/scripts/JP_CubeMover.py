@@ -152,8 +152,7 @@ def JP_Cube_Mover():
   pub = rospy.Publisher("/jaco/joint_control", JointState, queue_size=1)
 
   ##Subscriber to listen for cube positons
-  rospy.init_node('BucketPosListener') #, anonymous=True) #No need to be anonymous I guess
-  rospy.Subscriber("/BucketPos", Pose, defineBucket)
+  rospy.Subscriber("/CubePos", PoseArray, moveCubes)
   
   #TEST coordinates to be read in:
   init_pose = group.get_current_pose().pose
@@ -197,8 +196,8 @@ def defineBucket(bucketPos):
 
 
 def lookForBucket():
-  rospy.init_node('CubePoslistener') #, anonymous=True) #No need to be anonymous I guess
-  rospy.Subscriber("/CubePos", PoseArray, moveCubes)
+  rospy.init_node('Poslistener') #, anonymous=True) #No need to be anonymous I guess
+  rospy.Subscriber("/BucketPos", Pose, defineBucket)
 
 
 
