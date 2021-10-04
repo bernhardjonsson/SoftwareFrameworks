@@ -152,22 +152,14 @@ def JP_Cube_Mover():
   pub = rospy.Publisher("/jaco/joint_control", JointState, queue_size=1)
 
   ##Subscriber to listen for cube positons
-  rospy.init_node('CubePoslistener') #, anonymous=True) #No need to be anonymous I guess
-
-  rospy.Subscriber("poses", PoseArray, moveCubes)
-  
+  rospy.init_node('BucketPosListener') #, anonymous=True) #No need to be anonymous I guess
+  rospy.Subscriber("/BucketPos", Pose, defineBucket)
   
   #TEST coordinates to be read in:
   init_pose = group.get_current_pose().pose
   print init_pose
   Move_Arm(group, robot, display_trajectory_publisher, scene, init_pose.position.x, init_pose.position.y, init_pose.position.z, 0, -1.57, 0)  
   global bucket_x; global bucket_y; global bucket_z
-  bucket_x = 0.35
-  bucket_y = -0.05
-  bucket_z = 1.2
-  box_x = 0.45
-  box_y = -0.15
-  box_z = 1.2
   
   ## FICTIVE WHILE LOOP FOR EACH BOX:                                                                                                                                             #Move The Arm
   # Move_Arm(group, robot, display_trajectory_publisher, scene, box_x, box_y, box_z+0.2, 0, -1.57, 0)        #Move above box
@@ -186,7 +178,7 @@ def JP_Cube_Mover():
  
   ## END_TUTORIAL
   print "============ STOPPING"
-  R = rospy.Rate(10)
+  R = rospy.Rate(2)
   while not rospy.is_shutdown():
     R.sleep()
 
@@ -197,6 +189,16 @@ def moveCubes(posArray):
     Gripper_Close(JointState, pub)                                                                                                 #Grap box
     Move_Arm(group, robot, display_trajectory_publisher, scene, bucket_x, bucket_y, bucket_z, 0, -1.57, 0)  #Move above bucket_x
     Gripper_Open(JointState, pub) 
+def defineBucket(bucketPos):
+  bucket_x = bucketPos.pose.position.x
+  bucket_y = bucketPos.pose.position.y
+  bucket_z = bucketPos.pose.position.z
+  JP_Cube_Mover()
+
+
+def lookForBucket():
+  rospy.init_node('CubePoslistener') #, anonymous=True) #No need to be anonymous I guess
+  rospy.Subscriber("/CubePos", PoseArray, moveCubes)
 
 
 
