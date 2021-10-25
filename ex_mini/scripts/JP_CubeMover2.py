@@ -9,7 +9,7 @@ import rospy
 import tf_conversions
 import moveit_commander
 import moveit_msgs.msg
-from geometry_msgs.msg import PoseArray, Pose
+from geometry_msgs.msg import PoseArray, Pose, PoseStamped
 import shape_msgs.msg as shape_msgs
 from sensor_msgs.msg import JointState
 from numpy import zeros, array, linspace
@@ -37,13 +37,16 @@ def Vizualize_Plan(plan):
   print "============ Waiting while plan 2 is visualized (again)..."
   rospy.sleep(1)
   
-  #If we're coming from another script we might want to remove the objects
+  #If we're coming from another script we might want to remove the objects, we can probably remove this for tidiness
   if "table" in scene.get_known_object_names():
+    print("Table got removed")
     scene.remove_world_object("table")
   if "table2" in scene.get_known_object_names():
     scene.remove_world_object("table2")
+    print("Table2 got removed")
   if "groundplane" in scene.get_known_object_names():
     scene.remove_world_object("groundplane")
+    print("GroundPlane got removed")
 
   
 def Move_Arm(group, robot, display_trajectory_publisher, scene, pose_x, pose_y, pose_z, orientation_x, orientation_w):
@@ -54,32 +57,30 @@ def Move_Arm(group, robot, display_trajectory_publisher, scene, pose_x, pose_y, 
   pose_goal = group.get_current_pose().pose
   print "===== Init pose: "
   print pose_goal
-  waypoints = []
-  waypoints.append(pose_goal)
+  waypoints = [] #Create an array for our waypoints
+  waypoints.append(pose_goal) #Set our initial point
   pose_goal.position.x =pose_x
   pose_goal.position.y =pose_y
   pose_goal.position.z =pose_z
-  if(orientation_x != 0):
-    pose_goal.orientation.x = 0.0
-    pose_goal.orientation.y = -0.707106781187
-    pose_goal.orientation.z = 0.0
-    pose_goal.orientation.w = 0.707106781187
+  pose_goal.orientation.x = 0.0 #Hard code our goal orientation to pointing directly downwards, should check cube orientation instad
+  pose_goal.orientation.y = -0.707106781187
+  pose_goal.orientation.z = 0.0
+  pose_goal.orientation.w = 0.707106781187
   
   print pose_goal
  
   #Create waypoints
   waypoints.append(copy.deepcopy(pose_goal))
  
-  #Createcartesian  plan
-  (plan, fraction) = group.compute_cartesian_path(
-                                      waypoints,   # waypoints to follow
-                                      0.01,        # eef_step
-                                      0.0)         # jump_threshold
-  print("Found path fraction: ", fraction)
-  #print("our plan is :" + plan1)
-  #plan1 = group.retime_trajectory(robot.get_current_state(), plan1, 1.0)
-  #group.set_pose_target(pose_goal)
-  #plan1 = group.plan()
+  #Create cartesian  plan
+  attempts = 0; fraction = 0 #Create an attempts variable to break out of while loop eventually
+  while fraction < 0.99 and attempts < 100:
+    (plan, fraction) = group.compute_cartesian_path(
+                                    waypoints,   # waypoints to follow
+                                    0.01 - attempts/20000,        # eef_step, Try smaller step sizes as we go up in attemps,
+                                    0.0)         # jump_threshold
+    print("Found path fraction: ", fraction, "in attempt number", attempts)
+    attempts += 1 
   
   #Visualizing Plan with RVIZ
   Vizualize_Plan(plan)
@@ -87,7 +88,6 @@ def Move_Arm(group, robot, display_trajectory_publisher, scene, pose_x, pose_y, 
   print "============ Waiting while Executing Plan..."
   group.execute(plan,wait=True)
   print "============ Executed Plan..."
-  #group.go(wait=True)
   rospy.sleep(2.)
  
 def Gripper_Close(JointState, pub):
@@ -95,7 +95,6 @@ def Gripper_Close(JointState, pub):
   print 'Received!'
   currentJointState.header.stamp = rospy.get_rostime()
   tmp = 0.7
-  #tmp_tuple=tuple([tmp] + list(currentJointState.position[1:]))
   currentJointState.velocity = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
   currentJointState.position = tuple(list(currentJointState.position[:6]) + [tmp] + [tmp]+ [tmp] + [tmp] + [tmp] + [tmp])
   rate = rospy.Rate(10) # 10hz
@@ -111,7 +110,6 @@ def Gripper_Open(JointState, pub):
   print 'Received!'
   currentJointState.header.stamp = rospy.get_rostime()
   tmp = 0.005
-  #tmp_tuple=tuple([tmp] + list(currentJointState.position[1:]))
   currentJointState.velocity = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
   currentJointState.position = tuple(list(currentJointState.position[:6]) + [tmp] + [tmp]+ [tmp])
   rate = rospy.Rate(10) # 10hz
@@ -141,8 +139,6 @@ def JP_Cube_Mover():
   ## Initialize moveit_commander and rospy.
   print "============ Move Box setup"
   moveit_commander.roscpp_initialize(sys.argv)
-  #rospy.init_node('Cube_Mover2',
-  #                anonymous=True)
   global robot; global scene; global group
   robot = moveit_commander.RobotCommander()
   scene = moveit_commander.PlanningSceneInterface()
@@ -168,13 +164,9 @@ def JP_Cube_Mover():
  
  
   ## Plannet Setup:
-  #group.set_planning_time(0.0)
   group.set_goal_orientation_tolerance(0.02)
   group.set_goal_tolerance(0.02)
   group.set_goal_joint_tolerance(0.03)
-  #group.set_num_planning_attempts(100) #Not supported anymore
-  #group.set_max_velocity_scaling_factor(1.0)
-  #group.set_max_acceleration_scaling_factor(1.0)
   
   
   ## Grapper Setup:
@@ -186,26 +178,17 @@ def JP_Cube_Mover():
   Gripper_Open(JointState, pub)
 
 
-  ##Subscriber to listen for cube positons
+  ##Start Subscriber to listen for cube positons
   rospy.Subscriber("/CubePos", PoseArray, moveCubes)
   
-  #TEST coordinates to be read in:
+  #print our initial Pose to check we have good movement
   init_pose = group.get_current_pose().pose
   print init_pose
- # Move_Arm(group, robot, display_trajectory_publisher, scene, init_pose.position.x, init_pose.position.y, init_pose.position.z+0.2, 0, -1.57, 0)  
-  
-  ## FICTIVE WHILE LOOP FOR EACH BOX:                                                                                                                                             #Move The Arm
-  # Move_Arm(group, robot, display_trajectory_publisher, scene, box_x, box_y, box_z+0.2, 0, -1.57, 0)        #Move above box
-  # Move_Arm(group, robot, display_trajectory_publisher, scene, box_x, box_y, box_z, 0, -1.57, 0)               #Move down to box
-  # Gripper_Close(JointState, pub)                                                                                                 #Grap box
-  # Move_Arm(group, robot, display_trajectory_publisher, scene, bucket_x, bucket_y, bucket_z, 0, -1.57, 0)  #Move above bucket_x
-  # Gripper_Open(JointState, pub)                                                                                                  #Open grapper
-  ## REPEAT FOR EACH BOX:
   
   
  
- 
- 
+ #Clean up our mess in Rviz
+  cleanUp_RVIZ()
  
   ## END_TUTORIAL
   print "============ STOPPING"
@@ -213,14 +196,37 @@ def JP_Cube_Mover():
   while not rospy.is_shutdown():
     R.sleep()
 
+def cleanUp_RVIZ():
+  models_in_scene = [s for s in scene.get_known_object_names() if "cube" or "bucket" in s]
+  print("cleaning up models:")
+  print(models_in_scene)
+  for name in models_in_scene:
+    scene.remove_world_object(name)
+
 def moveCubes(posArray):
   global Busy
   global RunOnceFlag
- # if(not Busy):
- #   Busy = True
-  global bucket_x; global bucket_y; global bucket_z
+  global bucket_x; global bucket_y; global bucket_z; global bucketPose
   global robot; global scene; global group
   
+  #Add bucket to rviz
+  p = PoseStamped()
+  p.header.frame_id = robot.get_planning_frame()
+  p.pose = bucketPose
+  p.pose.position.z += 0.09
+
+ # p.pose.orientation = 
+  scene.add_box('Bucket', p, (0.2, 0.2, 0.18)) #Use sizes from blender
+  #Try spawning cubes in RVIZ because the hint told us to?
+  
+  p = PoseStamped()
+  p.header.frame_id = robot.get_planning_frame()
+  cube_counter = 0
+  for pose in posArray.poses:
+    p.pose.position = pose.position
+    p.pose.orientation = pose.orientation
+    scene.add_box('cube'+str(cube_counter), p, (0.05, 0.05, 0.05))
+    cube_counter += 1
 
   for pose in posArray.poses:
     print("Moving to box positioned at x:", pose.position.x, ", y: ", pose.position.y, ", z:", pose.position.z)
@@ -236,16 +242,15 @@ def moveCubes(posArray):
     Move_Arm(group, robot, display_trajectory_publisher, scene, bucket_x, bucket_y, bucket_z + 0.4, 1, 0)  #Move above bucket_x
     Gripper_Open(JointState, pub) 
 
-  #    Busy = False
-
     ## DONE - Shut down moveit_commander.
   moveit_commander.roscpp_shutdown()
 
 def defineBucket(bucketPos):
-  global bucket_x; global bucket_y; global bucket_z
+  global bucket_x; global bucket_y; global bucket_z; global bucketPose
   bucket_x = bucketPos.position.x
   bucket_y = bucketPos.position.y
   bucket_z = bucketPos.position.z
+  bucketPose = bucketPos
   global haveBucket
   if(not haveBucket):
     JP_Cube_Mover()
@@ -262,8 +267,6 @@ def lookForBucket():
 
 
 if __name__=='__main__':
-  #global haveBucket
-  #haveBucket = False
   print "Main of JP_CubeMover2 Started"
   try:
      lookForBucket()
