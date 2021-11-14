@@ -11,11 +11,11 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-<<<<<<< HEAD
+##<<<<<<< HEAD
   geometry_msgs
-=======
+#=======
   message_generation
->>>>>>> f391cffaf03824bf436ff85871a91ac9358c6c36
+#>>>>>>> f391cffaf03824bf436ff85871a91ac9358c6c36
 )
 
 ## System dependencies are found with CMake's conventions
