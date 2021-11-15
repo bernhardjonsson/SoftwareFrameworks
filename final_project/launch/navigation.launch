@@ -2,7 +2,7 @@
  
   <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
   <arg name="move_forward_only" default="false"/>
-  <arg name="map_name" defult="map.yaml"/> 
+  <arg name="map_name" default="map.yaml"/> 
  
   <arg name="initial_pose_x" default="-2.0"/>
   <arg name="initial_pose_y" default="-0.5"/>
