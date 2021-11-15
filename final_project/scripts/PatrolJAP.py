@@ -4,6 +4,7 @@ import rospy
 import actionlib
 import random
 import math
+import tf
 
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from gazebo_msgs.msg import ModelStates as  msg #<---
@@ -57,6 +58,11 @@ def RandomPos(GoalPos_pub):
     newPos = burger_robot_pose
     newPos.position.x = burger_robot_pose.position.x + math.cos(RndAng)*RndDist
     newPos.position.y = burger_robot_pose.position.y + math.sin(RndAng)*RndDist
+    quaternionOrientation = tf.transformations.quaternion_from_euler(RndAng,0,0)
+    newPos.orientation.x = quaternionOrientation[0]
+    newPos.orientation.y = quaternionOrientation[1]
+    newPos.orientation.z = quaternionOrientation[2]
+    newPos.orientation.w = quaternionOrientation[3]
     GoalPos_pub.publish(newPos)
  
 def sub_GoalPosStatus(GoalPoseStatus):
