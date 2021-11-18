@@ -64,6 +64,7 @@ def RandomPos(GoalPos_pub):
     newPos.orientation.z = quaternionOrientation[2]
     newPos.orientation.w = quaternionOrientation[3]
     GoalPos_pub.publish(newPos)
+    print("publishing new goal: " , newPos.position)
  
 def sub_GoalPosStatus(GoalPoseStatus):
   global GoalStatus
@@ -81,6 +82,7 @@ def sub_cal(msg):
 #<----
  
 if __name__ == '__main__':
+  print("==========Initializing==========")
   #rospy.init_node('patrol')
   GoalPos_publisher = rospy.Publisher('/Goal_pos',Pose, queue_size = 1000) #<---
   rospy.Subscriber('/Goal_pos_status', Int16, sub_GoalPosStatus, queue_size=1000) #<---
@@ -91,8 +93,9 @@ if __name__ == '__main__':
   #client.wait_for_server()
 
   while True:
+    print("==========Running==========")
     RandomPos(GoalPos_publisher)
-    rospy.sleep(3)      
+    rospy.sleep(5)      
   #  for pose in waypoints:   
   #      goal = goal_pose(pose)
   #      client.send_goal(goal)
