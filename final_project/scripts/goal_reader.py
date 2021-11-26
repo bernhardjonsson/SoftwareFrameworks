@@ -4,6 +4,7 @@ import rospy
 from gazebo_msgs.msg import ModelStates as  msg
 from geometry_msgs.msg import PoseArray, Pose, PoseStamped
 from std_msgs.msg import String
+import tf
 
 global pose_list
 pose_list = []
@@ -15,9 +16,20 @@ def update_Marker_Position(PoseStamped):
     global marker_Pose
     marker_Pose = PoseStamped.pose
 
-def transformation_Matrix(localPose, globalPose):
-    print("should transform here")
+
+
+def start_TF_Listener():
+    listener = tf.TransformListener()
     
+
+    
+def spawnTransformFromQr(msg, poseName):
+    br = tf.TransformBroadcaster()
+    br.sendTransform((msg.position.x, msg.position.y, 0),
+    (msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w),
+    rospy.Time.now(),
+    poseName,
+    "camera_optical_link") #Might be camera_link but idk
 
 
 def sub_cal(String):
@@ -51,6 +63,9 @@ def sub_cal(String):
         goal_pose.pose.position.y = Y_next
         if not goal_pose in pose_list:
             pose_list[index] = goal_pose 
+        global marker_Pose
+        spawnTransformFromQr(marker_Pose, 'marker%s' %index)
+
     except ValueError:
         print('no good value')
         #continue
@@ -58,13 +73,14 @@ def sub_cal(String):
 
 
 
-#initialize subscriber
-rospy.Subscriber('/visp_auto_tracker/code_message', String, sub_cal, queue_size = 1000)
-rospy.Subscriber('/visp_auto_tracker/object_position', PoseStamped, update_Marker_Position, queue_size=1000)
+
 
 if __name__ == '__main__':
     print("==========Initializing==========")
     rospy.init_node('goal_reader')
+    #initialize subscriber
+    rospy.Subscriber('/visp_auto_tracker/object_position', PoseStamped, update_Marker_Position, queue_size=1000)
+    rospy.Subscriber('/visp_auto_tracker/code_message', String, sub_cal, queue_size = 1000)
     global GoalPos_publisher
     GoalPos_publisher = rospy.Publisher('/Goal_pos',Pose, queue_size = 1000) #<---
     r = rospy.Rate(1)
@@ -82,7 +98,7 @@ if __name__ == '__main__':
                 print(pose.pose.position)
 
             if (found_points == 2):
-                transformation_Matrix
+                start_TF_Listener()
             if (found_points >= 2):
                 for i in range(5):
                     if (i == 4):
