@@ -5,6 +5,7 @@ import actionlib
 import copy
 from geometry_msgs.msg import Pose
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from std_msgs.msg import Int16
  
 
 def Get_goal_pos(msg):
@@ -30,6 +31,7 @@ def print_goal(target_pose):
 
 #subcribe to topics
 rospy.Subscriber("Goal_pos", Pose, Get_goal_pos, queue_size = 1000)
+goal_status_pub = rospy.Publisher('/Goal_pos_status', Int16, queue_size=1000)
 
 
 if __name__ == '__main__':
@@ -53,9 +55,10 @@ if __name__ == '__main__':
             client.wait_for_result()
             last_goal = copy.deepcopy(goal_pose)
             listening = False
-
+            goal_status_pub.publish(0)
         elif goal_pose == last_goal and not listening:
             print("==========Listening !==========")
+            goal_status_pub.publish(1) #Should actually publish 1 or -1 for success/fail
             listening = True
 
         rospy.sleep(3)

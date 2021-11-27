@@ -235,6 +235,7 @@ def move_to_next(Q):
     else:
       print "going for", queue_head
       X_map, Y_map = do_tf2d(Q.codes[queue_head].data['X_next'], Q.codes[queue_head].data['Y_next'], c, s, a, b)
+      print(' at: ', X_map,Y_map)
       pose3 = [(X_map, Y_map, 0.0), (0,0,0,1)] #Next QR code position 
       goal = goal_pose(pose3)
       Q.client.send_goal(goal)

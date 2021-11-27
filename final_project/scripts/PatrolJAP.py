@@ -63,6 +63,10 @@ def RandomPos(GoalPos_pub):
     newPos.orientation.y = quaternionOrientation[1]
     newPos.orientation.z = quaternionOrientation[2]
     newPos.orientation.w = quaternionOrientation[3]
+    newPos.orientation.x = 0
+    newPos.orientation.y = 0
+    newPos.orientation.z = 0
+    newPos.orientation.w = 1
     GoalPos_pub.publish(newPos)
     print("publishing new goal: " , newPos.position)
  
