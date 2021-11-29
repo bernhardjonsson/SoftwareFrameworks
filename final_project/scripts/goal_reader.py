@@ -84,6 +84,14 @@ def get_tf(markerData):
     s = (x[0] * y_n[0] - x[0] * y_n[1] - x_n[0] * y[0] + x_n[0] * y[1] - x[1] * y_n[0] + x[1] * y_n[1] + x_n[1] * y[0] - x_n[1] * y[1]) / (x[0] ** 2 - 2 * x[0] * x[1] + x[1] ** 2 + y[0] ** 2 - 2 * y[0] * y[1] + y[1] ** 2)
     a1 = -(c ** 2 * x[0] + s ** 2 * x[0] - c * x_n[0] - s * y_n[0]) / (c ** 2 + s ** 2)
     a2 = -(c ** 2 * y[0] + s ** 2 * y[0] - c * y_n[0] + s * x_n[0]) / (c ** 2 + s ** 2)
+    #c=(x[0]*x_n[0] - x[0]*x_n[1] - x[1]*x_n[0] + x[1]*x_n[1] + y[0]*y_n[0] - y[0]*y_n[1] - y[1]*y_n[0] + y[1]*y_n[1])/(x[0]**2 - 2*x[0]*x[1] + x[1]**2 + y[0]**2 - 2*y[0]*y[1] + y[1]**2)
+    #s=(x[0]*y_n[0] - x_n[0]*y[0] - x[0]*y_n[1] - x[1]*y_n[0] + x_n[0]*y[1] + x_n[1]*y[0] + x[1]*y_n[1] - x_n[1]*y[1])/(x[0]**2 - 2*x[0]*x[1] + x[1]**2 + y[0]**2 - 2*y[0]*y[1] + y[1]**2)
+    #a1=(x[0]**2*x_n[1] + x[1]**2*x_n[0] + x_n[0]*y[1]**2 + x_n[1]*y[0]**2 - x[0]*x[1]*x_n[0] - x[0]*x[1]*x_n[1] + x[0]*y[1]*y_n[0] - x[1]*y[0]*y_n[0] - x_n[0]*y[0]*y[1] - x[0]*y[1]*y_n[1] + x[1]*y[0]*y_n[1] - x_n[1]*y[0]*y[1])/(x[0]**2 - 2*x[0]*x[1] + x[1]**2 + y[0]**2 - 2*y[0]*y[1] + y[1]**2)
+    #a2=(x[0]**2*y_n[1] + x[1]**2*y_n[0] + y[0]**2*y_n[1] + y[1]**2*y_n[0] - x[0]*x[1]*y_n[0] - x[0]*x_n[0]*y[1] + x[1]*x_n[0]*y[0] - x[0]*x[1]*y_n[1] + x[0]*x_n[1]*y[1] - x[1]*x_n[1]*y[0] - y[0]*y[1]*y_n[0] - y[0]*y[1]*y_n[1])/(x[0]**2 - 2*x[0]*x[1] + x[1]**2 + y[0]**2 - 2*y[0]*y[1] + y[1]**2)
+
+
+    
+    
     print('calculated constants to be: c=',c,', s=',s,', a1= ',a1,', a2=',a2)
     return c, s, a1, a2
 
@@ -93,17 +101,19 @@ def transformToMap(x_next, y_next, c,s,a1,a2):
     #Do our own little transform to make sure we don't end up exactly in the middle of the marker.
    #I wanted to offset it and make it look at the marker as a backup plan if it fails to spot it,
    #but I didn't get around to it yet.
-    x1n = c * a1 - s * a2 + c * x - s * y
-    y1n = a1 * s + a2 * c + c * y + s * x
+    #x1n = c * a1 - s * a2 + c * x - s * y
+    #y1n = a1 * s + a2 * c + c * y + s * x
+    x1n = c*x - s*y + a1
+    y1n = s * x + c * x + a2
     return x1n, y1n
 
 def find_Next_Goal(markerData, goalPublisher, thisNode, c, s, a1, a2):  
     global goalStatus
     if len(markerData.codes) < 5:
         if (markerData.current_target  % 5) + 1 not in markerData.codes.keys() and markerData.current_target > 0:
-            if abs(goalStatus) == 1:
+            if abs(goalStatus) == 2:
                 #We apparently reached the goal without managing to scan it. oops
-                value = markerData.codes[markerData.current_target]
+                value = markerData.codes[str(markerData.current_target)]
                 x_dest, y_dest = transformToMap(value.data['X_next'],value.data['Y_next'],c,s,a1,a2)
                 x = float(x_dest)
                 y = float(y_dest)
@@ -112,6 +122,7 @@ def find_Next_Goal(markerData, goalPublisher, thisNode, c, s, a1, a2):
                 offset_goal = goal_pose(x,y)
                 goalPublisher.publish(offset_goal)
                 markerData.current_goal = offset_goal
+                print("republished goal:", offset_goal)
                 #We should add some rotation data to the pose so it will still look at the marker position.
 
             goalPublisher.publish(markerData.current_goal)
@@ -246,11 +257,13 @@ if __name__ == '__main__':
     c = s = a1 = a2 = None
     while not rospy.is_shutdown():
         if len(markers.codes) == 5:
-            rospy.signal_shutdown("Good night!")
+            print("complete!")
+            reader_node.kill()
         if len(markers.codes) >= 2 and c == None:
+            #We need to define our transformation matrix first
             c,s,a1,a2 = get_tf(markers)
-        if len(markers.codes) >= 2:
-            goal_status_pub.publish(0)
+        if len(markers.codes) >= 2 and c is not None:
+            #We have a fully defined rotation matrix and can publish goals
             find_Next_Goal(markers, GoalPos_publisher, reader_node, c, s, a1, a2)
             continue
         r.sleep()
