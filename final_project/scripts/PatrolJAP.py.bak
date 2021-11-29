@@ -39,7 +39,7 @@ def RandomPos(GoalPos_pub):
     if(GoalStatus == -1):
         ErrorCnt = ErrorCnt + 1
     else:
-        ErrorCnt = 0
+        ErrorCnt = 0;
     
     RndAng = 0.35*ErrorCnt     
     #RndAng = random.uniform(-3.14,3.14)
