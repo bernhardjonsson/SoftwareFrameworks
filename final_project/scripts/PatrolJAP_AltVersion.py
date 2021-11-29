@@ -19,6 +19,9 @@ gazebo_obj = msg()
 global burger_robot_pose
 burger_robot_pose = Pose()
 
+global ErrorCnt
+ErrorCnt = 0
+
 def find_substring(lis,sub_str):
     res = []
     for i in range(len(lis)):
@@ -29,22 +32,31 @@ def find_substring(lis,sub_str):
 def RandomPos(GoalPos_pub):
   global GoalStatus
   global burger_robot_pose
+  global ErrorCnt
   if (GoalStatus == 1) or (GoalStatus == -1):
     #Succesful or Failed -> Go to new random pose: if 0  Still Going.. Skip
-    RndAng = random.uniform(-3.14,3.14)
-    RndDist = random.uniform(0.6,1.5)
+    RndAng = 0
+    if(GoalStatus == -1):
+        ErrorCnt = ErrorCnt + 1
+    else:
+        ErrorCnt = 0
+    
+    RndAng = 0.35*ErrorCnt     
+    #RndAng = random.uniform(-3.14,3.14)
+    #RndDist = random.uniform(0.6,1.5)
+    RndDist = 0.8
     newPos = burger_robot_pose
     newPos.position.x = burger_robot_pose.position.x + math.cos(RndAng)*RndDist
     newPos.position.y = burger_robot_pose.position.y + math.sin(RndAng)*RndDist
-    quaternionOrientation = tf.transformations.quaternion_from_euler(RndAng,0,0)
+    quaternionOrientation = tf.transformations.quaternion_from_euler(0,0,RndAng)
     newPos.orientation.x = quaternionOrientation[0]
     newPos.orientation.y = quaternionOrientation[1]
     newPos.orientation.z = quaternionOrientation[2]
     newPos.orientation.w = quaternionOrientation[3]
-    newPos.orientation.x = 0
-    newPos.orientation.y = 0
-    newPos.orientation.z = 0
-    newPos.orientation.w = 1
+    #newPos.orientation.x = 0
+    #newPos.orientation.y = 0
+    #newPos.orientation.z = 0
+    #newPos.orientation.w = 1
     GoalPos_pub.publish(newPos)
     print("publishing new goal: " , newPos.position, 'which is ', RndDist, ' units away.')
  
