@@ -41,7 +41,7 @@ def RandomPos(GoalPos_pub):
     else:
         ErrorCnt = 0;
     
-    RndAng = 0.35*ErrorCnt     
+    RndAng =     
     #RndAng = random.uniform(-3.14,3.14)
     RndDist = random.uniform(0.6,1.5)
     newPos = burger_robot_pose

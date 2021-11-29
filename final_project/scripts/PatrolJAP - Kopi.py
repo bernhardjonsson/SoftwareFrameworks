@@ -19,9 +19,6 @@ gazebo_obj = msg()
 global burger_robot_pose
 burger_robot_pose = Pose()
 
-global ErrorCnt
-ErrorCnt = 0
-
 def find_substring(lis,sub_str):
     res = []
     for i in range(len(lis)):
@@ -32,17 +29,9 @@ def find_substring(lis,sub_str):
 def RandomPos(GoalPos_pub):
   global GoalStatus
   global burger_robot_pose
-  global ErrorCnt
   if (GoalStatus == 1) or (GoalStatus == -1):
     #Succesful or Failed -> Go to new random pose: if 0  Still Going.. Skip
-    RndAng = 0
-    if(GoalStatus == -1):
-        ErrorCnt = ErrorCnt + 1
-    else:
-        ErrorCnt = 0;
-    
-    RndAng = 0.35*ErrorCnt     
-    #RndAng = random.uniform(-3.14,3.14)
+    RndAng = random.uniform(-3.14,3.14)
     RndDist = random.uniform(0.6,1.5)
     newPos = burger_robot_pose
     newPos.position.x = burger_robot_pose.position.x + math.cos(RndAng)*RndDist
