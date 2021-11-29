@@ -48,15 +48,15 @@ def RandomPos(GoalPos_pub):
     newPos = burger_robot_pose
     newPos.position.x = burger_robot_pose.position.x + math.cos(RndAng)*RndDist
     newPos.position.y = burger_robot_pose.position.y + math.sin(RndAng)*RndDist
-    quaternionOrientation = tf.transformations.quaternion_from_euler(RndAng,0,0)
+    quaternionOrientation = tf.transformations.quaternion_from_euler(0,0,RndAng)
     newPos.orientation.x = quaternionOrientation[0]
     newPos.orientation.y = quaternionOrientation[1]
     newPos.orientation.z = quaternionOrientation[2]
     newPos.orientation.w = quaternionOrientation[3]
-    newPos.orientation.x = 0
-    newPos.orientation.y = 0
-    newPos.orientation.z = 0
-    newPos.orientation.w = 1
+    #newPos.orientation.x = 0
+    #newPos.orientation.y = 0
+    #newPos.orientation.z = 0
+    #newPos.orientation.w = 1
     GoalPos_pub.publish(newPos)
     print("publishing new goal: " , newPos.position, 'which is ', RndDist, ' units away.')
  
