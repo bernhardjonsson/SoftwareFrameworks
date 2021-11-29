@@ -9,7 +9,21 @@ from std_msgs.msg import Int16
  
 
 def Get_goal_pos(msg):
-    global goal_pose
+    global goal_pose, random_walk
+    if random_walk:
+        goal_pose.target_pose.header.frame_id = 'map'
+        goal_pose.target_pose.pose.position.x = msg.position.x
+        goal_pose.target_pose.pose.position.y = msg.position.y
+        goal_pose.target_pose.pose.position.z = msg.position.z
+        goal_pose.target_pose.pose.orientation.x = msg.orientation.x
+        goal_pose.target_pose.pose.orientation.y = msg.orientation.y
+        goal_pose.target_pose.pose.orientation.z = msg.orientation.z
+        goal_pose.target_pose.pose.orientation.w = msg.orientation.w
+
+
+def Get_Marker_pos(msg):
+    global goal_pose, random_walk
+    random_walk = False
     goal_pose.target_pose.header.frame_id = 'map'
     goal_pose.target_pose.pose.position.x = msg.position.x
     goal_pose.target_pose.pose.position.y = msg.position.y
@@ -31,6 +45,7 @@ def print_goal(target_pose):
 
 #subcribe to topics
 rospy.Subscriber("Goal_pos", Pose, Get_goal_pos, queue_size = 1000)
+rospy.Subscriber("Marker_pos", Pose, Get_Marker_pos, queue_size = 1000)
 goal_status_pub = rospy.Publisher('/Goal_pos_status', Int16, queue_size=1000)
 
 
@@ -43,6 +58,7 @@ if __name__ == '__main__':
     goal_pose = MoveBaseGoal()
     last_goal = MoveBaseGoal()
     listening = False
+    random_walk = True
 
     print("==========Runnning==========")
     while True:
@@ -58,7 +74,8 @@ if __name__ == '__main__':
             goal_status_pub.publish(0)
         elif goal_pose == last_goal and not listening:
             print("==========Listening !==========")
-            goal_status_pub.publish(1) #Should actually publish 1 or -1 for success/fail
+            if random_walk == True:
+                goal_status_pub.publish(1) #Should actually publish 1 or -1 for success/fail
             listening = True
 
         rospy.sleep(3)

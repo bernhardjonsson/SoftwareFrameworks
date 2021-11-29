@@ -54,7 +54,7 @@ def RandomPos(GoalPos_pub):
   if (GoalStatus == 1) or (GoalStatus == -1):
     #Succesful or Failed -> Go to new random pose: if 0  Still Going.. Skip
     RndAng = random.uniform(-3.14,3.14)
-    RndDist = random.uniform(0.3,0.5)
+    RndDist = random.uniform(0.6,1.5)
     newPos = burger_robot_pose
     newPos.position.x = burger_robot_pose.position.x + math.cos(RndAng)*RndDist
     newPos.position.y = burger_robot_pose.position.y + math.sin(RndAng)*RndDist
@@ -68,11 +68,12 @@ def RandomPos(GoalPos_pub):
     newPos.orientation.z = 0
     newPos.orientation.w = 1
     GoalPos_pub.publish(newPos)
-    print("publishing new goal: " , newPos.position)
+    print("publishing new goal: " , newPos.position, 'which is ', RndDist, ' units away.')
  
 def sub_GoalPosStatus(GoalPoseStatus):
   global GoalStatus
   GoalStatus = GoalPoseStatus.data
+  print('updated goal status to be:', GoalPoseStatus.data )
  
 def sub_cal(msg):
   global gazebo_obj

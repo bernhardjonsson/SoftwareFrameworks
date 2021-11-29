@@ -6,13 +6,18 @@ from geometry_msgs.msg import PoseArray, Pose, PoseStamped
 from std_msgs.msg import String, Int16
 import tf
 import copy
+import random
 
+
+global goalStatus
+goalStatus = 0
 
 class markerData:
     def __init__(self):
         self.codes = {}
         self.object_position = PoseStamped()
-        self.current_goal = 0
+        self.current_goal = PoseStamped()
+        self.current_target = 0
 
     def add_code(self,code):
         index = int(code.data['N'])
@@ -79,19 +84,37 @@ def get_tf(markerData):
     s = (x[0] * y_n[0] - x[0] * y_n[1] - x_n[0] * y[0] + x_n[0] * y[1] - x[1] * y_n[0] + x[1] * y_n[1] + x_n[1] * y[0] - x_n[1] * y[1]) / (x[0] ** 2 - 2 * x[0] * x[1] + x[1] ** 2 + y[0] ** 2 - 2 * y[0] * y[1] + y[1] ** 2)
     a1 = -(c ** 2 * x[0] + s ** 2 * x[0] - c * x_n[0] - s * y_n[0]) / (c ** 2 + s ** 2)
     a2 = -(c ** 2 * y[0] + s ** 2 * y[0] - c * y_n[0] + s * x_n[0]) / (c ** 2 + s ** 2)
+    print('calculated constants to be: c=',c,', s=',s,', a1= ',a1,', a2=',a2)
     return c, s, a1, a2
 
 def transformToMap(x_next, y_next, c,s,a1,a2):
     x = float(x_next)
     y = float(y_next)
+    #Do our own little transform to make sure we don't end up exactly in the middle of the marker.
+   #I wanted to offset it and make it look at the marker as a backup plan if it fails to spot it,
+   #but I didn't get around to it yet.
     x1n = c * a1 - s * a2 + c * x - s * y
     y1n = a1 * s + a2 * c + c * y + s * x
     return x1n, y1n
-def find_Next_Goal(markerData, goalPublisher, thisNode):  
-    c,s,a1,a2 = get_tf(markerData)
+
+def find_Next_Goal(markerData, goalPublisher, thisNode, c, s, a1, a2):  
+    global goalStatus
     if len(markerData.codes) < 5:
-        if (markerData.current_goal  % 5) + 1 not in markerData.codes.keys() and markerData.current_goal > 0:
-            
+        if (markerData.current_target  % 5) + 1 not in markerData.codes.keys() and markerData.current_target > 0:
+            if abs(goalStatus) == 1:
+                #We apparently reached the goal without managing to scan it. oops
+                value = markerData.codes[markerData.current_target]
+                x_dest, y_dest = transformToMap(value.data['X_next'],value.data['Y_next'],c,s,a1,a2)
+                x = float(x_dest)
+                y = float(y_dest)
+                x = x - (random.uniform(-0.3,0.3)*(x/abs(x)))
+                y = y - (random.uniform(-0.3,0.3)*(y/abs(y)))
+                offset_goal = goal_pose(x,y)
+                goalPublisher.publish(offset_goal)
+                markerData.current_goal = offset_goal
+                #We should add some rotation data to the pose so it will still look at the marker position.
+
+            goalPublisher.publish(markerData.current_goal)
             rospy.sleep(2)
             return
         else:
@@ -107,13 +130,16 @@ def find_Next_Goal(markerData, goalPublisher, thisNode):
                     print('next goal is: ',(key % 5) + 1)
                     print('converting goal', value.data['X_next'], value.data['Y_next'],' to map coordinates')
                     print("Published goal:" , goal.position.x, " , ", goal.position.y )
-                    markerData.current_goal = (key % 5) + 1
+                    markerData.current_goal = goal
+                    markerData.current_target = (key % 5) + 1
                     rospy.sleep(2)
                     return
     else:
         print("complete!")
         thisNode.kill()
         rospy.sleep(20)
+
+
 
 
 
@@ -126,8 +152,6 @@ def qr_code_msg_cb(message, args):
         #Return if empty data message
         if(len(message.data) < 1):
             return
-        #Should maybe stop until we know where to go next.
-
         #Parse the string into coordinates and index
         code = VispData(marker_Pose,message)
         if markers.new_QR_Code(code): #It's a new QR code 
@@ -151,7 +175,12 @@ def qr_code_msg_cb(message, args):
     except ValueError:
         print('no good value')
         return
-        #continue
+def GoalPosStatus_cb(msg): #Use this to check if we failed to read QR code.
+    global goalStatus
+    goalStatus = msg.data
+    if goalStatus == 1:
+        print("reached goal ")
+    
 
 #Borrowed form https://gist.github.com/awesomebytes/960456009d81365b6c635e0c6c1cf5ca#file-tf_for_me-py
 class TF_stuff(object):
@@ -206,15 +235,22 @@ if __name__ == '__main__':
     #initialize subscribers
     rospy.Subscriber('/visp_auto_tracker/object_position', PoseStamped, update_Marker_Position, queue_size=1000)
     rospy.Subscriber('/visp_auto_tracker/code_message', String, qr_code_msg_cb, [listener,markers], queue_size = 1000)
+    rospy.Subscriber('/Goal_pos_status', Int16, GoalPosStatus_cb, queue_size=1000) #<---
+    #Intialize publishers
+    GoalPos_publisher = rospy.Publisher('/Marker_pos',Pose, queue_size = 1000) #<---
     goal_status_pub = rospy.Publisher('/Goal_pos_status', Int16, queue_size=1000)
-    GoalPos_publisher = rospy.Publisher('/Goal_pos',Pose, queue_size = 1000) #<---
     r = rospy.Rate(1)
     found_points = 0
+    goal_status_pub.publish(-1) #Initialize patrol script
+    #Define transform parameters so we can check if they were set
+    c = s = a1 = a2 = None
     while not rospy.is_shutdown():
         if len(markers.codes) == 5:
             rospy.signal_shutdown("Good night!")
+        if len(markers.codes) >= 2 and c == None:
+            c,s,a1,a2 = get_tf(markers)
         if len(markers.codes) >= 2:
             goal_status_pub.publish(0)
-            find_Next_Goal(markers, GoalPos_publisher, reader_node)
+            find_Next_Goal(markers, GoalPos_publisher, reader_node, c, s, a1, a2)
             continue
         r.sleep()
