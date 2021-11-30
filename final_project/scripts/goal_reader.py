@@ -80,19 +80,13 @@ def get_tf(markerData):
     print('y is:' , y)
     x = map(float,x)
     y = map(float,y)
-    #c = (x[0] * x_n[0] - x[0] * x_n[1] - x_n[0] * x[1] + x[1] * x_n[1] + y[0] * y_n[0] - y[0] * y_n[1] - y_n[0] * y[1] + y[1] * y_n[1]) / (x[0] ** 2 - 2 * x[0] * x[1] + x[1] ** 2 + y[0] ** 2 - 2 * y[0] * y[1] + y[1] ** 2)
-    #s = (x[0] * y_n[0] - x[0] * y_n[1] - x_n[0] * y[0] + x_n[0] * y[1] - x[1] * y_n[0] + x[1] * y_n[1] + x_n[1] * y[0] - x_n[1] * y[1]) / (x[0] ** 2 - 2 * x[0] * x[1] + x[1] ** 2 + y[0] ** 2 - 2 * y[0] * y[1] + y[1] ** 2)
-    #a1 = -(c ** 2 * x[0] + s ** 2 * x[0] - c * x_n[0] - s * y_n[0]) / (c ** 2 + s ** 2)
-    #a2 = -(c ** 2 * y[0] + s ** 2 * y[0] - c * y_n[0] + s * x_n[0]) / (c ** 2 + s ** 2)
-    c=(x[0]*x_n[0] - x[0]*x_n[1] - x[1]*x_n[0] + x[1]*x_n[1] + y[0]*y_n[0] - y[0]*y_n[1] - y[1]*y_n[0] + y[1]*y_n[1])/(x[0]**2 - 2*x[0]*x[1] + x[1]**2 + y[0]**2 - 2*y[0]*y[1] + y[1]**2)
-    s=(x[0]*y_n[0] - x_n[0]*y[0] - x[0]*y_n[1] - x[1]*y_n[0] + x_n[0]*y[1] + x_n[1]*y[0] + x[1]*y_n[1] - x_n[1]*y[1])/(x[0]**2 - 2*x[0]*x[1] + x[1]**2 + y[0]**2 - 2*y[0]*y[1] + y[1]**2)
-    a1 = x_n[0] - c * x[0] + s*y[0]
-    a2 = y_n[0] - s * x[0] - c * y[0]
-    #a1=(x[0]**2*x_n[1] + x[1]**2*x_n[0] + x_n[0]*y[1]**2 + x_n[1]*y[0]**2 - x[0]*x[1]*x_n[0] - x[0]*x[1]*x_n[1] + x[0]*y[1]*y_n[0] - x[1]*y[0]*y_n[0] - x_n[0]*y[0]*y[1] - x[0]*y[1]*y_n[1] + x[1]*y[0]*y_n[1] - x_n[1]*y[0]*y[1])/(x[0]**2 - 2*x[0]*x[1] + x[1]**2 + y[0]**2 - 2*y[0]*y[1] + y[1]**2)
-    #a2=(x[0]**2*y_n[1] + x[1]**2*y_n[0] + y[0]**2*y_n[1] + y[1]**2*y_n[0] - x[0]*x[1]*y_n[0] - x[0]*x_n[0]*y[1] + x[1]*x_n[0]*y[0] - x[0]*x[1]*y_n[1] + x[0]*x_n[1]*y[1] - x[1]*x_n[1]*y[0] - y[0]*y[1]*y_n[0] - y[0]*y[1]*y_n[1])/(x[0]**2 - 2*x[0]*x[1] + x[1]**2 + y[0]**2 - 2*y[0]*y[1] + y[1]**2)
-
-
-    
+    x_n = map(float,x_n)
+    y_n = map(float,y_n)
+    c = (x[0] * x_n[0] - x[0] * x_n[1] - x_n[0] * x[1] + x[1] * x_n[1] + y[0] * y_n[0] - y[0] * y_n[1] - y_n[0] * y[1] + y[1] * y_n[1]) / (x[0] ** 2 - 2 * x[0] * x[1] + x[1] ** 2 + y[0] ** 2 - 2 * y[0] * y[1] + y[1] ** 2)
+    s = (x[0] * y_n[0] - x[0] * y_n[1] - x_n[0] * y[0] + x_n[0] * y[1] - x[1] * y_n[0] + x[1] * y_n[1] + x_n[1] * y[0] - x_n[1] * y[1]) / (x[0] ** 2 - 2 * x[0] * x[1] + x[1] ** 2 + y[0] ** 2 - 2 * y[0] * y[1] + y[1] ** 2)
+    a1 = -(c ** 2 * x[0] + s ** 2 * x[0] - c * x_n[0] - s * y_n[0]) / (c ** 2 + s ** 2)
+    a2 = -(c ** 2 * y[0] + s ** 2 * y[0] - c * y_n[0] + s * x_n[0]) / (c ** 2 + s ** 2)
+    print('got values c,s,a1,a2: ',c,s,a1,a2)    
     
     print('calculated constants to be: c=',c,', s=',s,', a1= ',a1,', a2=',a2)
     return c, s, a1, a2
@@ -100,11 +94,6 @@ def get_tf(markerData):
 def transformToMap(x_next, y_next, c,s,a1,a2):
     x = float(x_next)
     y = float(y_next)
-    #Do our own little transform to make sure we don't end up exactly in the middle of the marker.
-   #I wanted to offset it and make it look at the marker as a backup plan if it fails to spot it,
-   #but I didn't get around to it yet.
-    #x1n = c * a1 - s * a2 + c * x - s * y
-    #y1n = a1 * s + a2 * c + c * y + s * x
     x1n = c*x - s*y + a1
     y1n = s * x + c * x + a2
     return x1n, y1n
@@ -113,8 +102,8 @@ def find_Next_Goal(markerData, goalPublisher, thisNode, c, s, a1, a2):
     global goalStatus
     if len(markerData.codes) < 5:
         if (markerData.current_target  % 5) + 1 not in markerData.codes.keys() and markerData.current_target > 0:
-            if abs(goalStatus) == 2:
-                #We apparently reached the goal without managing to scan it. oops
+            if abs(goalStatus) == 1:
+                #We apparently reached the goal without managing to scan it. oops. Let's move around randomly for a bit to see if we can spot it.
                 value = markerData.codes[str(markerData.current_target)]
                 x_dest, y_dest = transformToMap(value.data['X_next'],value.data['Y_next'],c,s,a1,a2)
                 x = float(x_dest)
@@ -152,12 +141,6 @@ def find_Next_Goal(markerData, goalPublisher, thisNode, c, s, a1, a2):
         thisNode.kill()
         rospy.sleep(20)
 
-
-
-
-
-
-
 def qr_code_msg_cb(message, args):
     tf_util = args[0]
     markers = args[1]
@@ -171,12 +154,11 @@ def qr_code_msg_cb(message, args):
             print("spotted new QR code")
         else:
             return #We already saw this code.
-        print("test return")
         if len(markers.codes) >= 2:
+            pose = copy.deepcopy(code.pose)
+            pose.header.frame_id - '/camera_optical_link'
+            code = VispData(pose,message)
             markers.add_code(code)
-            #a = []
-            #for key in markers.codes.keys():
-            #    a.append(key)
             
             print("Added QR code {}. We now have the following QR Codes {}").format(code.data['N'], markers.codes.keys())
         else:

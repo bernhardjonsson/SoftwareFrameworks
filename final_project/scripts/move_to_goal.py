@@ -32,6 +32,7 @@ def Get_Marker_pos(msg):
     goal_pose.target_pose.pose.orientation.y = msg.orientation.y
     goal_pose.target_pose.pose.orientation.z = msg.orientation.z
     goal_pose.target_pose.pose.orientation.w = msg.orientation.w
+   # print('updated goal to:', goal_pose)
 
 def print_goal(target_pose):
     print("Goal position:\n  x: " + str(target_pose.pose.position.x) +
@@ -45,7 +46,7 @@ def print_goal(target_pose):
 
 #subcribe to topics
 rospy.Subscriber("Goal_pos", Pose, Get_goal_pos, queue_size = 1000)
-rospy.Subscriber("Marker_pos", Pose, Get_Marker_pos, queue_size = 1000)
+rospy.Subscriber('/Marker_pos', Pose, Get_Marker_pos, queue_size = 1000)
 goal_status_pub = rospy.Publisher('/Goal_pos_status', Int16, queue_size=1000)
 
 
